@@ -1,5 +1,6 @@
 using FastKeywords
 using Base.Test
 
-# write your own tests here
-@test 1 == 2
+include("KW.jl")
+include("fastcall.jl")
+include("fastkw.jl")
