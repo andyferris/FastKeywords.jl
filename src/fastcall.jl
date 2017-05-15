@@ -3,8 +3,7 @@ macro fastcall(expr)
         error("@fastcall macro expects an expression like f(x, y, ...; a=A, b=B, ...). Got $expr")
     end
 
-    oldname = expr.args[1]
-    newname = Symbol("fastkw#$oldname") # TODO deal with namespaces
+    fname = expr.args[1]
 
     simplecall = true
     args = expr.args[2:end]
@@ -19,22 +18,25 @@ macro fastcall(expr)
         return esc(expr)
     else
         newargs = make_ordered_kwlist(args)
-        return Expr(:call, newname, newargs...) # TODO excape newname?
+        return Expr(:call, esc(fname), Expr(:tuple, newargs...))
     end
 end
 
 function make_ordered_kwlist(args)
-    newargs = Vector{Any}()
+    std_args = Vector{Any}()
+    kw_args = Vector{Any}()
     kwlist = Vector{Symbol}()
     for arg ∈ args
         if iskw(arg)
-            push!(newargs, :(@kw($(esc(arg.args[1])) = $(esc(arg.args[2])))))
+            push!(kw_args, :(@kw($(esc(arg.args[1])) = $(esc(arg.args[2])))))
             push!(kwlist, arg.args[1])
         else
-            push!(newargs, esc(arg))
+            push!(std_args, esc(arg))
         end
     end
 
     perm = sortperm(kwlist)
-    newargs[(end-length(kwlist)+1):end] = newargs[(end-length(kwlist)+1):end][perm]
+    kw_args = kw_args[perm]
+
+    return (Expr(:tuple, KWSentinal(), kw_args...), std_args...)
 end
